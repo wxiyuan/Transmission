@@ -50,6 +50,7 @@ public class WifiP2pActivity extends BaseActivity {
         filter.addAction(WifiP2pManager.WIFI_P2P_THIS_DEVICE_CHANGED_ACTION);
         filter.addAction(WifiP2pManager.WIFI_P2P_DISCOVERY_CHANGED_ACTION);
         registerReceiver(mReceiver, filter);
+        showP2pDisableDialog();
     }
 
     @Override
@@ -61,7 +62,7 @@ public class WifiP2pActivity extends BaseActivity {
     private void showP2pDisableDialog() {
         if (mP2pDisableDialog == null) {
             DialogEntry entry = new DialogEntry("WifiP2p disabled",
-                    "WifiP2p disabled, please check wifi switch.", "OK", "cancel");
+                    "Please check wifi switch.", null, "Cancel");
             mP2pDisableDialog = CustomAlertDialog.newInstance(entry);
         }
         if (mP2pDisableDialog.getDialog() != null && mP2pDisableDialog.getDialog().isShowing()) {

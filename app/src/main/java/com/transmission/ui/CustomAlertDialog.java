@@ -3,6 +3,7 @@ package com.transmission.ui;
 import android.app.DialogFragment;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -22,6 +23,12 @@ public class CustomAlertDialog extends DialogFragment {
         CustomAlertDialog fragment = new CustomAlertDialog();
         fragment.setArguments(args);
         return fragment;
+    }
+
+    @Override
+    public void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setStyle(DialogFragment.STYLE_NO_TITLE, R.style.Dialog_No_Border);
     }
 
     @Override
@@ -55,14 +62,30 @@ public class CustomAlertDialog extends DialogFragment {
             messageTv.setVisibility(View.VISIBLE);
         }
         if (!TextUtils.isEmpty(positive)) {
-            TextView positiveTv = view.findViewById(R.id.custom_dialog_positive);
-            positiveTv.setText(positive);
-            positiveTv.setVisibility(View.VISIBLE);
+            TextView positiveBtn = view.findViewById(R.id.custom_dialog_positive);
+            positiveBtn.setText(positive);
+            positiveBtn.setVisibility(View.VISIBLE);
+            positiveBtn.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    CustomAlertDialog.this.dismiss();
+                }
+            });
         }
         if (!TextUtils.isEmpty(negative)) {
-            TextView negativeTv = view.findViewById(R.id.custom_dialog_negative);
-            negativeTv.setText(negative);
-            negativeTv.setVisibility(View.VISIBLE);
+            TextView negativeBtn = view.findViewById(R.id.custom_dialog_negative);
+            negativeBtn.setText(negative);
+            negativeBtn.setVisibility(View.VISIBLE);
+            negativeBtn.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    CustomAlertDialog.this.dismiss();
+                }
+            });
+        }
+        if (TextUtils.isEmpty(positive) || TextUtils.isEmpty(negative)) {
+            View splitV = view.findViewById(R.id.custom_dialog_split_v);
+            splitV.setVisibility(View.GONE);
         }
         return view;
     }
