@@ -43,10 +43,6 @@ public class WifiP2pActivity extends BaseActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_wifi_p2p);
-        initBroadcastReceiver();
-    }
-
-    private void initBroadcastReceiver() {
         IntentFilter filter = new IntentFilter();
         filter.addAction(WifiP2pManager.WIFI_P2P_STATE_CHANGED_ACTION);
         filter.addAction(WifiP2pManager.WIFI_P2P_PEERS_CHANGED_ACTION);
@@ -63,9 +59,14 @@ public class WifiP2pActivity extends BaseActivity {
     }
 
     private void showP2pDisableDialog() {
-        DialogEntry entry = new DialogEntry("WifiP2p disabled",
-                "WifiP2p disabled, please check wifi switch.", "OK", null);
-        mP2pDisableDialog = CustomAlertDialog.newInstance(entry);
+        if (mP2pDisableDialog == null) {
+            DialogEntry entry = new DialogEntry("WifiP2p disabled",
+                    "WifiP2p disabled, please check wifi switch.", "OK", "cancel");
+            mP2pDisableDialog = CustomAlertDialog.newInstance(entry);
+        }
+        if (mP2pDisableDialog.getDialog() != null && mP2pDisableDialog.getDialog().isShowing()) {
+            return;
+        }
         mP2pDisableDialog.show(getFragmentManager(), TAG_P2P_DISABLE_DIALOG);
     }
 
