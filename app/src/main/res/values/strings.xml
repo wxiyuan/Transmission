@@ -1,3 +1,9 @@
 <resources>
     <string name="app_name">Transmission</string>
+
+    <!-- Dialog -->
+    <string name="dlg_p2p_disable_title">WifiP2p disabled</string>
+    <string name="dlg_p2p_disable_message">Sorry, you have to turn on wifi switch to continue.</string>
+    <string name="dlg_btn_ok">OK</string>
+    <string name="dlg_btn_cancel">Cancel</string>
 </resources>

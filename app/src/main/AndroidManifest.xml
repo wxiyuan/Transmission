@@ -17,7 +17,7 @@
             </intent-filter>
         </activity>
         <activity android:name=".BaseActivity" />
-        <activity android:name=".WifiP2pActivity"></activity>
+        <activity android:name=".WifiP2pActivity"/>
     </application>
 
 </manifest>
