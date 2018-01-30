@@ -6,4 +6,9 @@
     <string name="dlg_p2p_disable_message">Sorry, you have to turn on wifi switch to continue.</string>
     <string name="dlg_btn_ok">OK</string>
     <string name="dlg_btn_cancel">Cancel</string>
+
+    <!-- Main Activity -->
+    <string name="txt_create_qr">生成二维码</string>
+    <string name="txt_scan_qr">扫描二维码</string>
+
 </resources>
