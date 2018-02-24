@@ -10,8 +10,8 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
-import com.transmission.R;
 import com.wxiyuan.transmission.entry.DialogEntry;
+import com.wxiyuan.transmission.R;
 
 public class CustomAlertDialog extends DialogFragment {
 
