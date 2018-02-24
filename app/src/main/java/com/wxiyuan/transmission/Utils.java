@@ -17,22 +17,21 @@ public class Utils {
 
     public static String getMacAddress() {
         String macSerial = "";
-        String str = "";
+        String line = "";
         try {
-            Process pp = Runtime.getRuntime().exec(
+            Process process = Runtime.getRuntime().exec(
                     "cat /sys/class/net/wlan0/address ");
-            InputStreamReader ir = new InputStreamReader(pp.getInputStream());
-            LineNumberReader input = new LineNumberReader(ir);
-
-            for (; null != str;) {
-                str = input.readLine();
-                if (str != null) {
-                    macSerial = str.trim();
+            InputStreamReader inputStreamReader = new InputStreamReader(process.getInputStream());
+            LineNumberReader input = new LineNumberReader(inputStreamReader);
+            for (; null != line;) {
+                line = input.readLine();
+                if (line != null) {
+                    macSerial = line.trim();
                     break;
                 }
             }
-        } catch (Exception ex) {
-            ex.printStackTrace();
+        } catch (Exception e) {
+            e.printStackTrace();
         }
         if (TextUtils.isEmpty(macSerial)) {
             try {
@@ -40,18 +39,16 @@ public class Utils {
                         .toUpperCase().substring(0, 17);
             } catch (Exception e) {
                 e.printStackTrace();
-
             }
-
         }
         return macSerial;
     }
 
     private static String loadFileAsString(String fileName) throws Exception {
         FileReader reader = new FileReader(fileName);
-        String text = loadReaderAsString(reader);
+        String result = loadReaderAsString(reader);
         reader.close();
-        return text;
+        return result;
     }
 
     private static String loadReaderAsString(Reader reader) throws Exception {
