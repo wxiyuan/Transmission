@@ -1,4 +1,4 @@
-package com.transmission.entry;
+package com.wxiyuan.transmission.entry;
 
 import android.os.Parcel;
 import android.os.Parcelable;

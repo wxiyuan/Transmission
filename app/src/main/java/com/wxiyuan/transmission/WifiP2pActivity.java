@@ -1,4 +1,4 @@
-package com.transmission;
+package com.wxiyuan.transmission;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -11,8 +11,9 @@ import android.net.wifi.p2p.WifiP2pInfo;
 import android.net.wifi.p2p.WifiP2pManager;
 import android.os.Bundle;
 
-import com.transmission.entry.DialogEntry;
-import com.transmission.ui.CustomAlertDialog;
+import com.transmission.R;
+import com.wxiyuan.transmission.entry.DialogEntry;
+import com.wxiyuan.transmission.ui.CustomAlertDialog;
 
 public class WifiP2pActivity extends BaseActivity {
 

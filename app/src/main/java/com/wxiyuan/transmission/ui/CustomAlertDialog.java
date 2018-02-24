@@ -1,4 +1,4 @@
-package com.transmission.ui;
+package com.wxiyuan.transmission.ui;
 
 import android.app.DialogFragment;
 import android.os.Bundle;
@@ -11,7 +11,7 @@ import android.view.ViewGroup;
 import android.widget.TextView;
 
 import com.transmission.R;
-import com.transmission.entry.DialogEntry;
+import com.wxiyuan.transmission.entry.DialogEntry;
 
 public class CustomAlertDialog extends DialogFragment {
 

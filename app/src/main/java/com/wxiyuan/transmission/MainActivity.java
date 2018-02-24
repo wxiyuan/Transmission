@@ -1,10 +1,12 @@
-package com.transmission;
+package com.wxiyuan.transmission;
 
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
+
+import com.transmission.R;
 
 public class MainActivity extends BaseActivity implements View.OnClickListener {
 
