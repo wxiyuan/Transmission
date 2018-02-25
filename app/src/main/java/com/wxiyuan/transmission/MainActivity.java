@@ -163,6 +163,7 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
                 mMainQrPart.setVisibility(View.VISIBLE);
                 break;
             case R.id.btn_scan_qr:
+//                Intent intent = new Intent(MainActivity.this, CaptureActivity.class);
                 break;
             case R.id.close_qr_btn:
                 mMainQrPart.setVisibility(View.GONE);
