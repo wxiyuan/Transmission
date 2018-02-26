@@ -3,7 +3,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context="com.transmission.MainActivity">
+    tools:context="com.wxiyuan.transmission.MainActivity">
 
     <LinearLayout
         android:id="@+id/main_btn_part"
@@ -67,7 +67,8 @@
             android:layout_centerHorizontal="true"
             android:background="@mipmap/close_qr_btn_bg"
             android:focusable="true"
-            android:clickable="true" />
+            android:clickable="true"
+            android:visibility="gone" />
 
     </RelativeLayout>
 

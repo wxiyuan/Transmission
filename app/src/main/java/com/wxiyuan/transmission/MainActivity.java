@@ -4,13 +4,13 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.graphics.Bitmap;
 import android.net.NetworkInfo;
 import android.net.wifi.p2p.WifiP2pDevice;
 import android.net.wifi.p2p.WifiP2pDeviceList;
 import android.net.wifi.p2p.WifiP2pInfo;
 import android.net.wifi.p2p.WifiP2pManager;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
@@ -18,11 +18,15 @@ import android.widget.ProgressBar;
 
 import com.google.zxing.client.android.CaptureActivity;
 import com.wxiyuan.transmission.entry.DialogEntry;
+import com.wxiyuan.transmission.handler.MainHandler;
 import com.wxiyuan.transmission.ui.CustomAlertDialog;
+
 
 public class MainActivity extends BaseActivity implements View.OnClickListener {
 
     private static final String TAG_P2P_DISABLE_DIALOG = "p2p_disable";
+    private final int QR_CODE_SIZE = 700;
+    private final int DECODE_QR_REQUEST_CODE = 0x20;
 
     private WifiP2pDeviceList mPeers;
     private CustomAlertDialog mP2pDisableDialog;
@@ -34,6 +38,8 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
     private View mCloseQrBtn;
     private ImageView mQrImage;
     private ProgressBar mQrProgressBar;
+    private Bitmap mMacQr;
+    private MainHandler mMainHandler = new MainHandler(this);
 
     private BroadcastReceiver mReceiver = new BroadcastReceiver() {
         @Override
@@ -102,8 +108,21 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
 
     @Override
     protected void onDestroy() {
+        if (mMacQr != null) {
+            mMacQr.recycle();
+        }
         unregisterReceiver(mReceiver);
         super.onDestroy();
+    }
+
+    public void displayQrCode() {
+        if (mMacQr == null) {
+            Utils.showToast(this, "Create qr-code failed.");
+            return;
+        }
+        mQrProgressBar.setVisibility(View.GONE);
+        mQrImage.setImageBitmap(mMacQr);
+        mCloseQrBtn.setVisibility(View.VISIBLE);
     }
 
     private void handleP2pStateChanged(boolean enabled) {
@@ -157,15 +176,41 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
     }
 
     @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        switch (requestCode) {
+            case DECODE_QR_REQUEST_CODE:
+                if (resultCode != RESULT_OK) { //RESULT_OK = -1
+                    break;
+                }
+                String result = data.getStringExtra("result");
+                Utils.showToast(MainActivity.this, result);
+                break;
+            default:
+                break;
+        }
+    }
+
+    @Override
     public void onClick(View view) {
         switch (view.getId()) {
             case R.id.btn_create_qr:
                 mMainBtnPart.setVisibility(View.GONE);
                 mMainQrPart.setVisibility(View.VISIBLE);
+                if (mMacQr == null) {
+                    new Thread() {
+                        @Override
+                        public void run() {
+                            mMacQr = Utils.createQrBitmap(Utils.getMacAddress(), QR_CODE_SIZE);
+                            mMainHandler.sendEmptyMessage(MainHandler.MSG_QR_CODE_READY);
+                        }
+                    }.start();
+                } else {
+                    displayQrCode();
+                }
                 break;
             case R.id.btn_scan_qr:
                 Intent intent = new Intent(MainActivity.this, CaptureActivity.class);
-                startActivity(intent);
+                startActivityForResult(intent, DECODE_QR_REQUEST_CODE);
                 break;
             case R.id.close_qr_btn:
                 mMainQrPart.setVisibility(View.GONE);
