@@ -18,6 +18,7 @@ import java.io.LineNumberReader;
 import java.io.Reader;
 import java.util.EnumMap;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 import static android.graphics.Color.BLACK;
 import static android.graphics.Color.WHITE;
@@ -48,11 +49,13 @@ public class Utils {
         }
         if (TextUtils.isEmpty(macSerial)) {
             try {
-                return loadFileAsString("/sys/class/net/sit0/address")
-                        .toUpperCase().substring(0, 17);
+                return loadFileAsString("/sys/class/net/sit0/address").substring(0, 17);
             } catch (Exception e) {
                 e.printStackTrace();
             }
+        }
+        if (!isValidMacAddress(macSerial)) {
+            return null;
         }
         return macSerial;
     }
@@ -119,6 +122,12 @@ public class Utils {
             }
         }
         return null;
+    }
+
+    public static boolean isValidMacAddress(String mac) {
+        String patternMac="^[A-Fa-f0-9]{2}(:[A-Fa-f0-9]{2}){5}$";
+        return Pattern.compile(patternMac).matcher(mac).find();
+
     }
 
 }
