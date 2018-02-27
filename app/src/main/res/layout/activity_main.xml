@@ -52,6 +52,13 @@
             android:layout_height="wrap_content"
             android:contentDescription="@string/app_name"/>
 
+        <TextView
+            android:id="@+id/scan_tip"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/main_qr_image"
+            android:text="@string/txt_scan_tip"/>
+
         <ProgressBar
             android:id="@+id/qr_load_progress"
             android:layout_width="50dp"
@@ -62,13 +69,43 @@
             android:id="@+id/close_qr_btn"
             android:layout_width="30dp"
             android:layout_height="30dp"
-            android:layout_below="@id/main_qr_image"
+            android:layout_below="@id/scan_tip"
             android:layout_marginTop="10dp"
             android:layout_centerHorizontal="true"
             android:background="@mipmap/close_qr_btn_bg"
             android:focusable="true"
             android:clickable="true"
             android:visibility="gone" />
+
+    </RelativeLayout>
+
+    <RelativeLayout
+        android:id="@+id/main_status_part"
+        android:layout_width="match_parent"
+        android:layout_height="60dp"
+        android:paddingStart="10dp"
+        android:paddingEnd="20dp"
+        android:background="#aa696969"
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/main_status_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerVertical="true"
+            android:layout_alignParentStart="true"
+            android:textSize="18sp"
+            android:textColor="#333333"/>
+
+        <View
+            android:id="@+id/btn_main_disconnect"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            android:layout_centerVertical="true"
+            android:layout_alignParentEnd="true"
+            android:focusable="true"
+            android:clickable="true"
+            android:background="@mipmap/close_qr_btn_bg" />
 
     </RelativeLayout>
 

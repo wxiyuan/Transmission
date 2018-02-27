@@ -4,12 +4,18 @@
     <!-- Dialog -->
     <string name="dlg_p2p_disable_title">WifiP2p disabled</string>
     <string name="dlg_p2p_disable_message">Sorry, you have to turn on wifi switch to continue.</string>
+    <string name="dlg_disconnect_title">Disconnect</string>
+    <string name="dlg_disconnect_message">Do you want to continue disconnect ?</string>
+    <string name="dlg_btn_yes">Yes</string>
     <string name="dlg_btn_ok">OK</string>
     <string name="dlg_btn_cancel">Cancel</string>
 
     <!-- Main Activity -->
-    <string name="txt_create_qr">生成二维码</string>
-    <string name="txt_scan_qr">扫描二维码</string>
+    <string name="txt_create_qr">Create qr code</string>
+    <string name="txt_scan_qr">Scan qr code</string>
+    <string name="txt_connected_title">%1s: connected</string>
+    <string name="txt_this_name">My name: %1s</string>
+    <string name="txt_scan_tip">Now you can scan this qr code use another phone and then app will start build wifi-p2p connection.</string>
 
     <!-- zxing -->
     <string name="app_picker_name">Applications</string>

@@ -18,6 +18,7 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
+import android.widget.TextView;
 
 import com.google.zxing.client.android.CaptureActivity;
 import com.wxiyuan.transmission.entry.DialogEntry;
@@ -39,20 +40,28 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
     private Button mScanQrBtn;
     private View mMainBtnPart;
     private View mMainQrPart;
+    private View mStatusPart;
     private View mCloseQrBtn;
+    private View mDisconnectBtn;
     private ImageView mQrImage;
     private ProgressBar mQrProgressBar;
+    private TextView mStatusTitle;
 
     private WifiP2pManager mWifiP2pManager;
     private WifiP2pManager.Channel mChannel;
     private WifiP2pDeviceList mPeers;
     private CustomAlertDialog mP2pDisableDialog;
+    private CustomAlertDialog mDisconnectDialog;
     private MainHandler mMainHandler = new MainHandler(this);
     private String mDesMac = null;
+    private WifiP2pDevice mThisDevice = null;
     private WifiP2pDevice mDesDevice = null;
     private Bitmap mMacQr;
     private String mConnectState = STATE_CONNECT_NONE;
+    private String mOwnerIp = null;
+    private String mThisName = null;
     private boolean mIsDiscover = false;
+    private boolean mIsOwner = false;
 
     private BroadcastReceiver mReceiver = new BroadcastReceiver() {
         @Override
@@ -109,6 +118,7 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
         // Init views
         mMainBtnPart = findViewById(R.id.main_btn_part);
         mMainQrPart = findViewById(R.id.main_qr_part);
+        mStatusPart = findViewById(R.id.main_status_part);
         mCreateQrBtn = findViewById(R.id.btn_create_qr);
         mCreateQrBtn.setOnClickListener(this);
         mScanQrBtn = findViewById(R.id.btn_scan_qr);
@@ -117,6 +127,9 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
         mCloseQrBtn = findViewById(R.id.close_qr_btn);
         mCloseQrBtn.setOnClickListener(this);
         mQrProgressBar = findViewById(R.id.qr_load_progress);
+        mStatusTitle = findViewById(R.id.main_status_title);
+        mDisconnectBtn = findViewById(R.id.btn_main_disconnect);
+        mDisconnectBtn.setOnClickListener(this);
     }
 
     @Override
@@ -129,13 +142,15 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
     }
 
     private void tearDown() {
-        if (mIsDiscover) {
-            stopDiscover();
-        }
+        stopDiscover();
         mPeers = null;
         mDesMac = null;
         mDesDevice = null;
         mConnectState = STATE_CONNECT_NONE;
+        mMainQrPart.setVisibility(View.GONE);
+        mStatusPart.setVisibility(View.GONE);
+        mDisconnectBtn.setVisibility(View.GONE);
+        mMainBtnPart.setVisibility(View.VISIBLE);
     }
 
     private void initWifiP2pManager() {
@@ -169,6 +184,9 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
     }
 
     private void discoverPeers() {
+        if (mIsDiscover) {
+            return;
+        }
         mWifiP2pManager.discoverPeers(mChannel, new WifiP2pManager.ActionListener() {
             @Override
             public void onSuccess() {
@@ -183,6 +201,9 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
     }
 
     private void stopDiscover() {
+        if (!mIsDiscover) {
+            return;
+        }
         mWifiP2pManager.stopPeerDiscovery(mChannel, new WifiP2pManager.ActionListener() {
             @Override
             public void onSuccess() {
@@ -270,6 +291,11 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
 
     private void handleConnectionChanged(NetworkInfo networkInfo, WifiP2pInfo wifip2pinfo) {
         if (networkInfo.isConnected()) {
+            mIsOwner = wifip2pinfo.isGroupOwner;
+            mOwnerIp = wifip2pinfo.groupOwnerAddress.getHostAddress();
+            mStatusPart.setVisibility(View.VISIBLE);
+            mStatusTitle.setText(getResources().getString(R.string.txt_connected_title, "name"));
+            mDisconnectBtn.setVisibility(View.VISIBLE);
             mConnectState = STATE_CONNECTED;
         } else if (networkInfo.getState() == NetworkInfo.State.DISCONNECTED) {
             tearDown();
@@ -278,7 +304,8 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
     }
 
     private void handleThisDeviceChanged(WifiP2pDevice device) {
-        //
+        mThisDevice = device;
+        mThisName = device.deviceName;
     }
 
     private void handleDiscoverStateChanged(int state) {
@@ -298,6 +325,18 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
             return;
         }
         mP2pDisableDialog.show(getFragmentManager(), TAG_P2P_DISABLE_DIALOG);
+    }
+
+    private void showDisconnectDialog() {
+        if (mDisconnectDialog == null) {
+            DialogEntry entry = new DialogEntry(
+                    getStringRes(R.string.dlg_disconnect_title),
+                    getStringRes(R.string.dlg_disconnect_message),
+                    getStringRes(R.string.dlg_btn_yes),
+                    getStringRes(R.string.dlg_btn_cancel));
+            mDisconnectDialog = CustomAlertDialog.newInstance(entry);
+        }
+        mDisconnectDialog.show(getFragmentManager(), "disconnect");
     }
 
     private void dismissP2pDisableDialog() {
@@ -337,6 +376,8 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
             case R.id.btn_create_qr:
                 mMainBtnPart.setVisibility(View.GONE);
                 mMainQrPart.setVisibility(View.VISIBLE);
+                mStatusPart.setVisibility(View.VISIBLE);
+                mStatusTitle.setText(getResources().getString(R.string.txt_this_name, mThisName));
                 if (mMacQr == null) {
                     new Thread() {
                         @Override
@@ -355,7 +396,12 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
                 break;
             case R.id.close_qr_btn:
                 mMainQrPart.setVisibility(View.GONE);
+                mStatusPart.setVisibility(View.GONE);
                 mMainBtnPart.setVisibility(View.VISIBLE);
+                stopDiscover();
+                break;
+            case R.id.btn_main_disconnect:
+                showDisconnectDialog();
                 break;
             default:
                 break;
