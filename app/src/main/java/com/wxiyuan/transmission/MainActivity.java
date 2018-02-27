@@ -66,6 +66,7 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
     private String mThisName = null;
     private boolean mIsDiscover = false;
     private boolean mIsOwner = false;
+    private boolean mIsQrMode = false;
 
     private BroadcastReceiver mReceiver = new BroadcastReceiver() {
         @Override
@@ -141,6 +142,9 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
 
     @Override
     protected void onDestroy() {
+        if (mIsDiscover) {
+            mWifiP2pManager.stopPeerDiscovery(mChannel, null);
+        }
         if (mMacQr != null) {
             mMacQr.recycle();
         }
@@ -161,7 +165,10 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
         stopDiscover();
         mPeers = null;
         mDesMac = null;
+        mOwnerIp = null;
         mDesDevice = null;
+        mIsOwner = false;
+        mIsQrMode = false;
         mConnectState = STATE_CONNECT_NONE;
         setStatusTitle(mConnectState);
         mMainQrPart.setVisibility(View.GONE);
@@ -196,6 +203,7 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
         mQrProgressBar.setVisibility(View.GONE);
         mQrImage.setImageBitmap(mMacQr);
         mCloseQrBtn.setVisibility(View.VISIBLE);
+        mIsQrMode = true;
         discoverPeers();
     }
 
@@ -295,7 +303,7 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
     }
 
     private void handlePeersChanged(WifiP2pDeviceList peers) {
-        if (TextUtils.isEmpty(mDesMac) || mConnectState.equals(STATE_CONNECTING)) {
+        if (TextUtils.isEmpty(mDesMac) || mConnectState.equals(STATE_CONNECTING) || mIsQrMode) {
             return;
         }
         for (WifiP2pDevice peer : peers.getDeviceList()) {
@@ -315,10 +323,12 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
             mOwnerIp = wifip2pinfo.groupOwnerAddress.getHostAddress();
             WifiP2pDevice connectPeer = null;
             if (mIsOwner) {
+                if (wifiP2pGroup.getClientList() != null
+                        && wifiP2pGroup.getClientList().iterator().hasNext()) {
+                    connectPeer = wifiP2pGroup.getClientList().iterator().next();
+                }
+            } else {
                 connectPeer = wifiP2pGroup.getOwner();
-            } else if (wifiP2pGroup.getClientList() != null
-                    && wifiP2pGroup.getClientList().iterator().hasNext()) {
-                connectPeer = wifiP2pGroup.getClientList().iterator().next();
             }
             if (mDesDevice == null) {
                 mDesDevice = connectPeer;
@@ -426,6 +436,7 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
                     mDesMac = result;
                     discoverPeers();
                     mConnectingDialog = showProgressDialog(STATE_CONNECTING);
+                    setStatusTitle(STATE_CONNECTING);
                 } else {
                     Utils.showToast(MainActivity.this, "Invalid qr-code for Transmission.");
                 }
@@ -439,13 +450,18 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
     public void onClick(View view) {
         switch (view.getId()) {
             case R.id.btn_create_qr:
+                if (mThisDevice == null) {
+                    Utils.showToast(MainActivity.this,
+                            "This device is empty, create qr code failed");
+                    break;
+                }
                 mMainBtnPart.setVisibility(View.GONE);
                 mMainQrPart.setVisibility(View.VISIBLE);
                 if (mMacQr == null) {
                     new Thread() {
                         @Override
                         public void run() {
-                            mMacQr = Utils.createQrBitmap(Utils.getMacAddress(), QR_CODE_SIZE);
+                            mMacQr = Utils.createQrBitmap(mThisDevice.deviceAddress, QR_CODE_SIZE);
                             mMainHandler.sendEmptyMessage(MainHandler.MSG_QR_CODE_READY);
                         }
                     }.start();
@@ -458,6 +474,7 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
                 startActivityForResult(intent, DECODE_QR_REQUEST_CODE);
                 break;
             case R.id.close_qr_btn:
+                mIsQrMode = false;
                 mMainQrPart.setVisibility(View.GONE);
                 mMainBtnPart.setVisibility(View.VISIBLE);
                 stopDiscover();

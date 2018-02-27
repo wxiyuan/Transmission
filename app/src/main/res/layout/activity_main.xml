@@ -101,13 +101,13 @@
 
         <View
             android:id="@+id/btn_main_disconnect"
-            android:layout_width="30dp"
-            android:layout_height="30dp"
+            android:layout_width="15dp"
+            android:layout_height="15dp"
             android:layout_centerVertical="true"
             android:layout_alignParentEnd="true"
             android:focusable="true"
             android:clickable="true"
-            android:background="@mipmap/close_qr_btn_bg"
+            android:background="@mipmap/disconnect"
             android:visibility="gone"/>
 
     </RelativeLayout>
