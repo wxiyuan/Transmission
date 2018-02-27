@@ -10,6 +10,7 @@ import android.net.wifi.WpsInfo;
 import android.net.wifi.p2p.WifiP2pConfig;
 import android.net.wifi.p2p.WifiP2pDevice;
 import android.net.wifi.p2p.WifiP2pDeviceList;
+import android.net.wifi.p2p.WifiP2pGroup;
 import android.net.wifi.p2p.WifiP2pInfo;
 import android.net.wifi.p2p.WifiP2pManager;
 import android.os.Bundle;
@@ -23,7 +24,9 @@ import android.widget.TextView;
 import com.google.zxing.client.android.CaptureActivity;
 import com.wxiyuan.transmission.entry.DialogEntry;
 import com.wxiyuan.transmission.handler.MainHandler;
+import com.wxiyuan.transmission.listener.SimpleListener;
 import com.wxiyuan.transmission.ui.CustomAlertDialog;
+import com.wxiyuan.transmission.ui.ProgressDialog;
 
 
 public class MainActivity extends BaseActivity implements View.OnClickListener {
@@ -51,7 +54,6 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
     private WifiP2pManager.Channel mChannel;
     private WifiP2pDeviceList mPeers;
     private CustomAlertDialog mP2pDisableDialog;
-    private CustomAlertDialog mDisconnectDialog;
     private MainHandler mMainHandler = new MainHandler(this);
     private String mDesMac = null;
     private WifiP2pDevice mThisDevice = null;
@@ -87,7 +89,9 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
                             intent.getParcelableExtra(WifiP2pManager.EXTRA_NETWORK_INFO);
                     WifiP2pInfo wifip2pinfo =
                             intent.getParcelableExtra(WifiP2pManager.EXTRA_WIFI_P2P_INFO);
-                    handleConnectionChanged(networkInfo, wifip2pinfo);
+                    WifiP2pGroup wifiP2pGroup =
+                            intent.getParcelableExtra(WifiP2pManager.EXTRA_WIFI_P2P_GROUP);
+                    handleConnectionChanged(networkInfo, wifip2pinfo, wifiP2pGroup);
                     break;
                 case WifiP2pManager.WIFI_P2P_THIS_DEVICE_CHANGED_ACTION:
                     WifiP2pDevice thisDevice =
@@ -190,7 +194,7 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
         mWifiP2pManager.discoverPeers(mChannel, new WifiP2pManager.ActionListener() {
             @Override
             public void onSuccess() {
-                //
+                Utils.showToast(MainActivity.this, "Wifi-p2p discovery started.");
             }
 
             @Override
@@ -207,7 +211,7 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
         mWifiP2pManager.stopPeerDiscovery(mChannel, new WifiP2pManager.ActionListener() {
             @Override
             public void onSuccess() {
-                //
+                Utils.showToast(MainActivity.this, "Wifi-p2p discovery stopped.");
             }
 
             @Override
@@ -289,12 +293,31 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
         }
     }
 
-    private void handleConnectionChanged(NetworkInfo networkInfo, WifiP2pInfo wifip2pinfo) {
+    private void handleConnectionChanged(NetworkInfo networkInfo,
+                                         WifiP2pInfo wifip2pinfo, WifiP2pGroup wifiP2pGroup) {
         if (networkInfo.isConnected()) {
             mIsOwner = wifip2pinfo.isGroupOwner;
             mOwnerIp = wifip2pinfo.groupOwnerAddress.getHostAddress();
+            WifiP2pDevice connectPeer = null;
+            if (mIsOwner) {
+                connectPeer = wifiP2pGroup.getOwner();
+            } else if (wifiP2pGroup.getClientList() != null
+                    && wifiP2pGroup.getClientList().iterator().hasNext()) {
+                connectPeer = wifiP2pGroup.getClientList().iterator().next();
+            }
+            if (mDesDevice == null) {
+                mDesDevice = connectPeer;
+            } else {
+                if (connectPeer == null
+                        || !mDesDevice.deviceAddress.equals(connectPeer.deviceAddress)) {
+                    Utils.showToast(MainActivity.this, "Has connected with invalid device.");
+                    return;
+                }
+                mDesDevice = connectPeer;
+            }
+            String desName = (mDesDevice == null) ? null : mDesDevice.deviceName;
             mStatusPart.setVisibility(View.VISIBLE);
-            mStatusTitle.setText(getResources().getString(R.string.txt_connected_title, "name"));
+            mStatusTitle.setText(getResources().getString(R.string.txt_connected_title, desName));
             mDisconnectBtn.setVisibility(View.VISIBLE);
             mConnectState = STATE_CONNECTED;
         } else if (networkInfo.getState() == NetworkInfo.State.DISCONNECTED) {
@@ -328,15 +351,29 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
     }
 
     private void showDisconnectDialog() {
-        if (mDisconnectDialog == null) {
-            DialogEntry entry = new DialogEntry(
-                    getStringRes(R.string.dlg_disconnect_title),
-                    getStringRes(R.string.dlg_disconnect_message),
-                    getStringRes(R.string.dlg_btn_yes),
-                    getStringRes(R.string.dlg_btn_cancel));
-            mDisconnectDialog = CustomAlertDialog.newInstance(entry);
-        }
-        mDisconnectDialog.show(getFragmentManager(), "disconnect");
+        DialogEntry entry = new DialogEntry(
+                getStringRes(R.string.dlg_disconnect_title),
+                getStringRes(R.string.dlg_disconnect_message),
+                getStringRes(R.string.dlg_btn_yes),
+                getStringRes(R.string.dlg_btn_cancel));
+        CustomAlertDialog disconnectDialog = CustomAlertDialog.newInstance(entry);
+        disconnectDialog.setPositiveListener(new SimpleListener() {
+            @Override
+            public void call() {
+                disConnect();
+            }
+        });
+        disconnectDialog.show(getFragmentManager(), "disconnect");
+    }
+
+    private void showProgressDialog(String message) {
+        DialogEntry entry = new DialogEntry(
+                null,
+                message,
+                null,
+                null);
+        ProgressDialog progressDialog = ProgressDialog.newInstance(entry);
+        progressDialog.show(getFragmentManager(), message);
     }
 
     private void dismissP2pDisableDialog() {

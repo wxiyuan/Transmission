@@ -12,10 +12,14 @@ import android.widget.TextView;
 
 import com.wxiyuan.transmission.entry.DialogEntry;
 import com.wxiyuan.transmission.R;
+import com.wxiyuan.transmission.listener.SimpleListener;
 
 public class CustomAlertDialog extends DialogFragment {
 
     private static final String KEY_ENTRY_ARGS = "entry_args";
+
+    private SimpleListener positiveListener = null;
+    private SimpleListener negativeListener = null;
 
     public static CustomAlertDialog newInstance(@NonNull DialogEntry entry) {
         Bundle args = new Bundle();
@@ -68,6 +72,9 @@ public class CustomAlertDialog extends DialogFragment {
             positiveBtn.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
+                    if (positiveListener != null) {
+                        positiveListener.call();
+                    }
                     CustomAlertDialog.this.dismiss();
                 }
             });
@@ -79,6 +86,9 @@ public class CustomAlertDialog extends DialogFragment {
             negativeBtn.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
+                    if (negativeListener != null) {
+                        negativeListener.call();
+                    }
                     CustomAlertDialog.this.dismiss();
                 }
             });
@@ -88,6 +98,14 @@ public class CustomAlertDialog extends DialogFragment {
             splitV.setVisibility(View.GONE);
         }
         return view;
+    }
+
+    public void setPositiveListener(SimpleListener listener) {
+        positiveListener = listener;
+    }
+
+    public void setNegativeListener(SimpleListener listener) {
+        negativeListener = listener;
     }
 
 }
