@@ -14,6 +14,7 @@ import android.net.wifi.p2p.WifiP2pGroup;
 import android.net.wifi.p2p.WifiP2pInfo;
 import android.net.wifi.p2p.WifiP2pManager;
 import android.os.Bundle;
+import android.text.Html;
 import android.text.TextUtils;
 import android.view.View;
 import android.widget.Button;
@@ -54,6 +55,7 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
     private WifiP2pManager.Channel mChannel;
     private WifiP2pDeviceList mPeers;
     private CustomAlertDialog mP2pDisableDialog;
+    private ProgressDialog mConnectingDialog;
     private MainHandler mMainHandler = new MainHandler(this);
     private String mDesMac = null;
     private WifiP2pDevice mThisDevice = null;
@@ -132,6 +134,7 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
         mCloseQrBtn.setOnClickListener(this);
         mQrProgressBar = findViewById(R.id.qr_load_progress);
         mStatusTitle = findViewById(R.id.main_status_title);
+        setStatusTitle(mConnectState);
         mDisconnectBtn = findViewById(R.id.btn_main_disconnect);
         mDisconnectBtn.setOnClickListener(this);
     }
@@ -145,14 +148,23 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
         super.onDestroy();
     }
 
+    @Override
+    public void onBackPressed() {
+        if (mMainQrPart.getVisibility() == View.VISIBLE) {
+            tearDown();
+        } else {
+            super.onBackPressed();
+        }
+    }
+
     private void tearDown() {
         stopDiscover();
         mPeers = null;
         mDesMac = null;
         mDesDevice = null;
         mConnectState = STATE_CONNECT_NONE;
+        setStatusTitle(mConnectState);
         mMainQrPart.setVisibility(View.GONE);
-        mStatusPart.setVisibility(View.GONE);
         mDisconnectBtn.setVisibility(View.GONE);
         mMainBtnPart.setVisibility(View.VISIBLE);
     }
@@ -239,6 +251,7 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
             return;
         }
         mConnectState = STATE_CONNECTING;
+        setStatusTitle(mConnectState);
         WifiP2pConfig config = new WifiP2pConfig();
         config.deviceAddress = peer.deviceAddress;
         config.wps.setup = WpsInfo.PBC;
@@ -251,6 +264,8 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
             @Override
             public void onFailure(int reason) {
                 mConnectState = STATE_CONNECT_NONE;
+                setStatusTitle(mConnectState);
+                dismissConnectingDialog();
                 Utils.showToast(MainActivity.this, "Start connect failed, fail code is " + reason);
             }
         });
@@ -280,7 +295,7 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
     }
 
     private void handlePeersChanged(WifiP2pDeviceList peers) {
-        if (TextUtils.isEmpty(mDesMac)) {
+        if (TextUtils.isEmpty(mDesMac) || mConnectState.equals(STATE_CONNECTING)) {
             return;
         }
         for (WifiP2pDevice peer : peers.getDeviceList()) {
@@ -316,13 +331,12 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
                 mDesDevice = connectPeer;
             }
             String desName = (mDesDevice == null) ? null : mDesDevice.deviceName;
-            mStatusPart.setVisibility(View.VISIBLE);
-            mStatusTitle.setText(getResources().getString(R.string.txt_connected_title, desName));
+            setStatusTitle(desName + " connected");
             mDisconnectBtn.setVisibility(View.VISIBLE);
+            dismissConnectingDialog();
             mConnectState = STATE_CONNECTED;
         } else if (networkInfo.getState() == NetworkInfo.State.DISCONNECTED) {
             tearDown();
-            mConnectState = STATE_CONNECT_NONE;
         }
     }
 
@@ -366,7 +380,7 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
         disconnectDialog.show(getFragmentManager(), "disconnect");
     }
 
-    private void showProgressDialog(String message) {
+    private ProgressDialog showProgressDialog(String message) {
         DialogEntry entry = new DialogEntry(
                 null,
                 message,
@@ -374,6 +388,7 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
                 null);
         ProgressDialog progressDialog = ProgressDialog.newInstance(entry);
         progressDialog.show(getFragmentManager(), message);
+        return progressDialog;
     }
 
     private void dismissP2pDisableDialog() {
@@ -381,6 +396,18 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
             return;
         }
         mP2pDisableDialog.dismiss();
+    }
+
+    private void dismissConnectingDialog() {
+        if (mConnectingDialog == null || !mConnectingDialog.getDialog().isShowing()) {
+            return;
+        }
+        mConnectingDialog.dismiss();
+    }
+
+    private void setStatusTitle(String status) {
+        String result = getResources().getString(R.string.txt_status, status);
+        mStatusTitle.setText(Html.fromHtml(result));
     }
 
     private String getStringRes(int resId) {
@@ -398,6 +425,7 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
                 if (Utils.isValidMacAddress(result)) {
                     mDesMac = result;
                     discoverPeers();
+                    mConnectingDialog = showProgressDialog(STATE_CONNECTING);
                 } else {
                     Utils.showToast(MainActivity.this, "Invalid qr-code for Transmission.");
                 }
@@ -413,8 +441,6 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
             case R.id.btn_create_qr:
                 mMainBtnPart.setVisibility(View.GONE);
                 mMainQrPart.setVisibility(View.VISIBLE);
-                mStatusPart.setVisibility(View.VISIBLE);
-                mStatusTitle.setText(getResources().getString(R.string.txt_this_name, mThisName));
                 if (mMacQr == null) {
                     new Thread() {
                         @Override
@@ -433,9 +459,9 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
                 break;
             case R.id.close_qr_btn:
                 mMainQrPart.setVisibility(View.GONE);
-                mStatusPart.setVisibility(View.GONE);
                 mMainBtnPart.setVisibility(View.VISIBLE);
                 stopDiscover();
+                setStatusTitle(mConnectState);
                 break;
             case R.id.btn_main_disconnect:
                 showDisconnectDialog();

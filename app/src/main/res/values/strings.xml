@@ -13,8 +13,7 @@
     <!-- Main Activity -->
     <string name="txt_create_qr">Create qr code</string>
     <string name="txt_scan_qr">Scan qr code</string>
-    <string name="txt_connected_title">%1s: connected</string>
-    <string name="txt_this_name">My name: %1s</string>
+    <string name="txt_status"><Data><![CDATA[Status: <font color="#006400">%1$s</font>]]></Data></string>
     <string name="txt_scan_tip">Now you can scan this qr code use another phone and then app will start build wifi-p2p connection.</string>
 
     <!-- zxing -->
