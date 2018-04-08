@@ -1,9 +1,7 @@
 package com.wxiyuan.transmission;
 
-import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.graphics.Bitmap;
 import android.net.NetworkInfo;
 import android.net.wifi.WpsInfo;
@@ -28,16 +26,17 @@ import com.wxiyuan.transmission.handler.MainHandler;
 import com.wxiyuan.transmission.listener.SimpleListener;
 import com.wxiyuan.transmission.ui.CustomAlertDialog;
 import com.wxiyuan.transmission.ui.ProgressDialog;
+import com.wxiyuan.transmission.wifip2p.WifiP2pReceiver;
 
 
-public class MainActivity extends BaseActivity implements View.OnClickListener {
+public class MainActivity extends BaseActivity implements
+        View.OnClickListener, WifiP2pReceiver.WifiP2pListener {
 
     public static final String STATE_CONNECT_NONE = "none";
     public static final String STATE_CONNECTING = "connecting";
     public static final String STATE_CONNECTED = "connected";
 
     private static final String TAG_P2P_DISABLE_DIALOG = "p2p_disable";
-    private final int QR_CODE_SIZE = 700;
     private final int DECODE_QR_REQUEST_CODE = 0x20;
 
     private Button mCreateQrBtn;
@@ -50,6 +49,7 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
     private ImageView mQrImage;
     private ProgressBar mQrProgressBar;
     private TextView mStatusTitle;
+    private TextView mScanTip;
 
     private WifiP2pManager mWifiP2pManager;
     private WifiP2pManager.Channel mChannel;
@@ -68,60 +68,12 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
     private boolean mIsOwner = false;
     private boolean mIsQrMode = false;
 
-    private BroadcastReceiver mReceiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            String action = intent.getAction();
-            if (action == null) {
-                return;
-            }
-            switch (action) {
-                case WifiP2pManager.WIFI_P2P_STATE_CHANGED_ACTION:
-                    boolean wifiP2pEnabled =
-                            intent.getIntExtra(WifiP2pManager.EXTRA_WIFI_STATE,
-                                    WifiP2pManager.WIFI_P2P_STATE_DISABLED)
-                                    == WifiP2pManager.WIFI_P2P_STATE_ENABLED;
-                    handleP2pStateChanged(wifiP2pEnabled);
-                    break;
-                case WifiP2pManager.WIFI_P2P_PEERS_CHANGED_ACTION:
-                    mPeers = intent.getParcelableExtra(WifiP2pManager.EXTRA_P2P_DEVICE_LIST);
-                    handlePeersChanged(mPeers);
-                    break;
-                case WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION:
-                    NetworkInfo networkInfo =
-                            intent.getParcelableExtra(WifiP2pManager.EXTRA_NETWORK_INFO);
-                    WifiP2pInfo wifip2pinfo =
-                            intent.getParcelableExtra(WifiP2pManager.EXTRA_WIFI_P2P_INFO);
-                    WifiP2pGroup wifiP2pGroup =
-                            intent.getParcelableExtra(WifiP2pManager.EXTRA_WIFI_P2P_GROUP);
-                    handleConnectionChanged(networkInfo, wifip2pinfo, wifiP2pGroup);
-                    break;
-                case WifiP2pManager.WIFI_P2P_THIS_DEVICE_CHANGED_ACTION:
-                    WifiP2pDevice thisDevice =
-                            intent.getParcelableExtra(WifiP2pManager.EXTRA_WIFI_P2P_DEVICE);
-                    handleThisDeviceChanged(thisDevice);
-                    break;
-                case WifiP2pManager.WIFI_P2P_DISCOVERY_CHANGED_ACTION:
-                    int discoveryState = intent.getIntExtra(WifiP2pManager.EXTRA_DISCOVERY_STATE,
-                            WifiP2pManager.WIFI_P2P_DISCOVERY_STOPPED);
-                    handleDiscoverStateChanged(discoveryState);
-                    break;
-            }
-        }
-    };
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        // Init wifiP2p broadcast
-        IntentFilter filter = new IntentFilter();
-        filter.addAction(WifiP2pManager.WIFI_P2P_STATE_CHANGED_ACTION);
-        filter.addAction(WifiP2pManager.WIFI_P2P_PEERS_CHANGED_ACTION);
-        filter.addAction(WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION);
-        filter.addAction(WifiP2pManager.WIFI_P2P_THIS_DEVICE_CHANGED_ACTION);
-        filter.addAction(WifiP2pManager.WIFI_P2P_DISCOVERY_CHANGED_ACTION);
-        registerReceiver(mReceiver, filter);
+        // Init wifiP2p receiver and listener
+        WifiP2pReceiver.getInstance().register(MainActivity.this, MainActivity.this);
         // Init views
         mMainBtnPart = findViewById(R.id.main_btn_part);
         mMainQrPart = findViewById(R.id.main_qr_part);
@@ -131,6 +83,7 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
         mScanQrBtn = findViewById(R.id.btn_scan_qr);
         mScanQrBtn.setOnClickListener(this);
         mQrImage = findViewById(R.id.main_qr_image);
+        mScanTip = findViewById(R.id.scan_tip);
         mCloseQrBtn = findViewById(R.id.close_qr_btn);
         mCloseQrBtn.setOnClickListener(this);
         mQrProgressBar = findViewById(R.id.qr_load_progress);
@@ -148,7 +101,7 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
         if (mMacQr != null) {
             mMacQr.recycle();
         }
-        unregisterReceiver(mReceiver);
+        WifiP2pReceiver.getInstance().unRegister(MainActivity.this, MainActivity.this);
         super.onDestroy();
     }
 
@@ -201,6 +154,7 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
             return;
         }
         mQrProgressBar.setVisibility(View.GONE);
+        mScanTip.setVisibility(View.VISIBLE);
         mQrImage.setImageBitmap(mMacQr);
         mCloseQrBtn.setVisibility(View.VISIBLE);
         mIsQrMode = true;
@@ -293,72 +247,6 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
         });
     }
 
-    private void handleP2pStateChanged(boolean enabled) {
-        if (enabled) {
-            initWifiP2pManager();
-            dismissP2pDisableDialog();
-        } else {
-            showP2pDisableDialog();
-        }
-    }
-
-    private void handlePeersChanged(WifiP2pDeviceList peers) {
-        if (TextUtils.isEmpty(mDesMac) || mConnectState.equals(STATE_CONNECTING) || mIsQrMode) {
-            return;
-        }
-        for (WifiP2pDevice peer : peers.getDeviceList()) {
-            String address = peer.deviceAddress;
-            if (address.equals(mDesMac)) {
-                mDesDevice = peer;
-                connect(mDesDevice);
-                break;
-            }
-        }
-    }
-
-    private void handleConnectionChanged(NetworkInfo networkInfo,
-                                         WifiP2pInfo wifip2pinfo, WifiP2pGroup wifiP2pGroup) {
-        if (networkInfo.isConnected()) {
-            mIsOwner = wifip2pinfo.isGroupOwner;
-            mOwnerIp = wifip2pinfo.groupOwnerAddress.getHostAddress();
-            WifiP2pDevice connectPeer = null;
-            if (mIsOwner) {
-                if (wifiP2pGroup.getClientList() != null
-                        && wifiP2pGroup.getClientList().iterator().hasNext()) {
-                    connectPeer = wifiP2pGroup.getClientList().iterator().next();
-                }
-            } else {
-                connectPeer = wifiP2pGroup.getOwner();
-            }
-            if (mDesDevice == null) {
-                mDesDevice = connectPeer;
-            } else {
-                if (connectPeer == null
-                        || !mDesDevice.deviceAddress.equals(connectPeer.deviceAddress)) {
-                    Utils.showToast(MainActivity.this, "Has connected with invalid device.");
-                    return;
-                }
-                mDesDevice = connectPeer;
-            }
-            String desName = (mDesDevice == null) ? null : mDesDevice.deviceName;
-            setStatusTitle(desName + " connected");
-            mDisconnectBtn.setVisibility(View.VISIBLE);
-            dismissConnectingDialog();
-            mConnectState = STATE_CONNECTED;
-        } else if (networkInfo.getState() == NetworkInfo.State.DISCONNECTED) {
-            tearDown();
-        }
-    }
-
-    private void handleThisDeviceChanged(WifiP2pDevice device) {
-        mThisDevice = device;
-        mThisName = device.deviceName;
-    }
-
-    private void handleDiscoverStateChanged(int state) {
-        mIsDiscover = (state == WifiP2pManager.WIFI_P2P_DISCOVERY_STARTED);
-    }
-
     private void showP2pDisableDialog() {
         if (mP2pDisableDialog == null) {
             DialogEntry entry = new DialogEntry(
@@ -446,6 +334,10 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
         }
     }
 
+    private int getQrSize() {
+        return Math.min(Utils.getScreenWidth(this), Utils.getScreenHeight(this)) * 2 / 3;
+    }
+
     @Override
     public void onClick(View view) {
         switch (view.getId()) {
@@ -461,7 +353,7 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
                     new Thread() {
                         @Override
                         public void run() {
-                            mMacQr = Utils.createQrBitmap(mThisDevice.deviceAddress, QR_CODE_SIZE);
+                            mMacQr = Utils.createQrBitmap(mThisDevice.deviceAddress, getQrSize());
                             mMainHandler.sendEmptyMessage(MainHandler.MSG_QR_CODE_READY);
                         }
                     }.start();
@@ -486,5 +378,76 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
             default:
                 break;
         }
+    }
+
+    @Override
+    public void onP2pStateChanged(boolean enabled) {
+        if (enabled) {
+            initWifiP2pManager();
+            dismissP2pDisableDialog();
+        } else {
+            showP2pDisableDialog();
+        }
+    }
+
+    @Override
+    public void onP2pPeersChanged(WifiP2pDeviceList peers) {
+        mPeers = peers;
+        if (TextUtils.isEmpty(mDesMac) || mConnectState.equals(STATE_CONNECTING) || mIsQrMode) {
+            return;
+        }
+        for (WifiP2pDevice peer : mPeers.getDeviceList()) {
+            String address = peer.deviceAddress;
+            if (address.equals(mDesMac)) {
+                mDesDevice = peer;
+                connect(mDesDevice);
+                break;
+            }
+        }
+    }
+
+    @Override
+    public void onP2pConnectionChanged(NetworkInfo networkInfo, WifiP2pInfo wifip2pinfo, WifiP2pGroup wifiP2pGroup) {
+        if (networkInfo.isConnected()) {
+            mIsOwner = wifip2pinfo.isGroupOwner;
+            mOwnerIp = wifip2pinfo.groupOwnerAddress.getHostAddress();
+            WifiP2pDevice connectPeer = null;
+            if (mIsOwner) {
+                if (wifiP2pGroup.getClientList() != null
+                        && wifiP2pGroup.getClientList().iterator().hasNext()) {
+                    connectPeer = wifiP2pGroup.getClientList().iterator().next();
+                }
+            } else {
+                connectPeer = wifiP2pGroup.getOwner();
+            }
+            if (mDesDevice == null) {
+                mDesDevice = connectPeer;
+            } else {
+                if (connectPeer == null
+                        || !mDesDevice.deviceAddress.equals(connectPeer.deviceAddress)) {
+                    Utils.showToast(MainActivity.this, "Has connected with invalid device.");
+                    return;
+                }
+                mDesDevice = connectPeer;
+            }
+            String desName = (mDesDevice == null) ? null : mDesDevice.deviceName;
+            setStatusTitle(desName + " connected");
+            mDisconnectBtn.setVisibility(View.VISIBLE);
+            dismissConnectingDialog();
+            mConnectState = STATE_CONNECTED;
+        } else if (networkInfo.getState() == NetworkInfo.State.DISCONNECTED) {
+            tearDown();
+        }
+    }
+
+    @Override
+    public void onThisDeviceChanged(WifiP2pDevice thisDevice) {
+        mThisDevice = thisDevice;
+        mThisName = thisDevice.deviceName;
+    }
+
+    @Override
+    public void onP2pDiscoveryChanged(int discoveryState) {
+        mIsDiscover = (discoveryState == WifiP2pManager.WIFI_P2P_DISCOVERY_STARTED);
     }
 }

@@ -59,7 +59,8 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_below="@id/main_qr_image"
-            android:text="@string/txt_scan_tip"/>
+            android:text="@string/txt_scan_tip"
+            android:visibility="gone"/>
 
         <ProgressBar
             android:id="@+id/qr_load_progress"

@@ -4,6 +4,7 @@ import android.content.Context;
 import android.graphics.Bitmap;
 import android.support.annotation.NonNull;
 import android.text.TextUtils;
+import android.util.DisplayMetrics;
 import android.widget.Toast;
 
 import com.google.zxing.BarcodeFormat;
@@ -127,7 +128,14 @@ public class Utils {
     public static boolean isValidMacAddress(String mac) {
         String patternMac="^[A-Fa-f0-9]{2}(:[A-Fa-f0-9]{2}){5}$";
         return Pattern.compile(patternMac).matcher(mac).find();
+    }
 
+    public static int getScreenWidth(Context context) {
+        return context.getResources().getDisplayMetrics().widthPixels;
+    }
+
+    public static int getScreenHeight(Context context) {
+        return context.getResources().getDisplayMetrics().heightPixels;
     }
 
 }
