@@ -127,6 +127,7 @@
             android:screenOrientation="user"
             android:stateNotNeeded="true"/>
 
+        <service android:name=".service.SocketService" />
     </application>
 
 </manifest>

@@ -24,6 +24,8 @@ import com.google.zxing.client.android.CaptureActivity;
 import com.wxiyuan.transmission.entry.DialogEntry;
 import com.wxiyuan.transmission.handler.MainHandler;
 import com.wxiyuan.transmission.listener.SimpleListener;
+import com.wxiyuan.transmission.service.BaseService;
+import com.wxiyuan.transmission.service.SocketService;
 import com.wxiyuan.transmission.ui.CustomAlertDialog;
 import com.wxiyuan.transmission.ui.ProgressDialog;
 import com.wxiyuan.transmission.wifip2p.WifiP2pReceiver;
@@ -115,6 +117,7 @@ public class MainActivity extends BaseActivity implements
     }
 
     private void tearDown() {
+        stopSocketService();
         stopDiscover();
         mPeers = null;
         mDesMac = null;
@@ -338,6 +341,19 @@ public class MainActivity extends BaseActivity implements
         return Math.min(Utils.getScreenWidth(this), Utils.getScreenHeight(this)) * 2 / 3;
     }
 
+    private void startSocketService(WifiP2pInfo wifip2pinfo) {
+        Intent socketService = new Intent(MainActivity.this, SocketService.class);
+        socketService.setAction(mIsOwner ?
+                BaseService.ACTION_START_SERVER : BaseService.ACTION_START_CLIENT);
+        socketService.putExtra(BaseService.KEY_WIFI_P2P_INFO, wifip2pinfo);
+        startService(socketService);
+    }
+
+    private void stopSocketService() {
+        Intent socketService = new Intent(MainActivity.this, SocketService.class);
+        stopService(socketService);
+    }
+
     @Override
     public void onClick(View view) {
         switch (view.getId()) {
@@ -433,6 +449,7 @@ public class MainActivity extends BaseActivity implements
             String desName = (mDesDevice == null) ? null : mDesDevice.deviceName;
             setStatusTitle(desName + " connected");
             mDisconnectBtn.setVisibility(View.VISIBLE);
+            startSocketService(wifip2pinfo);
             dismissConnectingDialog();
             mConnectState = STATE_CONNECTED;
         } else if (networkInfo.getState() == NetworkInfo.State.DISCONNECTED) {
